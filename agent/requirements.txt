@@ -1,0 +1,19 @@
+# requirements.txt for AI Agent service
+
+# Core AI framework
+pydantic-ai # Or the specific package name if different
+
+# OpenAI library (ensure version compatible with pydantic-ai)
+# Use openai[azure] to include Azure-specific dependencies
+openai[azure]>=1.0.0
+
+# For making async HTTP requests to the API
+httpx
+
+# For loading .env file (optional, if needed within agent)
+python-dotenv
+
+# Pydantic (usually a dependency, but good to list)
+pydantic
+pydantic-settings
+

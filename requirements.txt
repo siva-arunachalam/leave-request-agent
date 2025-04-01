@@ -1,0 +1,15 @@
+# requirements.txt
+Faker
+holidays
+python-dateutil
+psycopg2-binary
+
+# FastAPI and related
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings # For loading config from env vars
+
+# Async Database access
+databases[asyncpg] # Includes 'databases' and the 'asyncpg' driver
+

@@ -1,0 +1,94 @@
+# docker-compose.yml
+
+version: '3.8' # Specifies the Docker Compose file version
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15 # Use the official PostgreSQL image (version 15)
+    container_name: pto_postgres_db # Assign a specific name to the container
+    environment:
+      # Database configuration sourced from environment variables or .env file
+      # Defaults are provided but should be overridden, especially POSTGRES_PASSWORD
+      POSTGRES_USER: ${DB_USER:-pto_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme} # **SET THIS VIA ENV or .env!**
+      POSTGRES_DB: ${DB_NAME:-pto_app_db}
+    # ports: # Only expose if needed by host directly
+    #   - "5432:5432"
+    volumes:
+      # Persist database data using a named volume
+      - postgres_data:/var/lib/postgresql/data
+      # Mount schema initialization script (relative to docker-compose.yml)
+      - ./sql/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped # Policy to restart the container unless manually stopped
+    networks:
+      - pto_network # Assign to the custom network
+    healthcheck: # Optional: Add healthcheck for DB readiness
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pto_user} -d ${DB_NAME:-pto_app_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application Service
+  api:
+    build:
+      context: . # Build context is project root for API's Dockerfile
+      dockerfile: Dockerfile # Assumes API Dockerfile is in root
+    container_name: pto_api_service # Assign a specific name to the container
+    # The CMD in the Dockerfile runs uvicorn by default.
+    # You can override it here if needed, e.g., to add --reload for development:
+    # command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      # Mount application code from host into container for development hot-reloading.
+      - ./app:/app/app
+    ports:
+      - "8000:8000" # Map host port 8000 to container port 8000 where API runs
+    environment:
+      # Pass DB connection details to the API application
+      - DB_HOST=db # Use the service name 'db' as the hostname
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-pto_user}
+      - DB_PASSWORD=${DB_PASSWORD:-changeme} # Use the same password as the db service
+      - DB_NAME=${DB_NAME:-pto_app_db}
+      # Controls visibility of override parameter in API docs (true/false)
+      - ALLOW_EMPLOYEE_OVERRIDE=${ALLOW_EMPLOYEE_OVERRIDE:-false}
+    depends_on:
+      db: # Ensure DB service is started and healthy before starting API
+        condition: service_healthy # Use condition if healthcheck is defined
+    restart: unless-stopped # Policy to restart the container unless manually stopped
+    networks:
+      - pto_network # Assign to the custom network
+
+  # AI Agent Service
+  agent:
+    build:
+      context: ./agent # Build context is the agent sub-directory
+      dockerfile: Dockerfile # Use the Dockerfile inside ./agent
+    container_name: pto_agent_service # Assign a specific name to the container
+    environment:
+      # Pass necessary variables from .env or shell to the agent container
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - API_BASE_URL=${API_BASE_URL:-http://api:8000} # URL for the agent to call the API service
+    depends_on:
+      - api # Agent depends on the API service being available (implies db is also ready)
+    restart: unless-stopped # Or 'no' if primarily run interactively via 'run'
+    networks:
+      - pto_network # Assign to the custom network
+    # Keep container running and allow interaction if agent/main.py runs a loop/server
+    stdin_open: true # Keep stdin open for interaction (e.g., if main.py has input())
+    tty: true        # Allocate a pseudo-TTY
+
+# Define the named volume used by the 'db' service for data persistence
+volumes:
+  postgres_data:
+    driver: local # Use the local driver for storing data on the host machine
+
+# Define the custom network for inter-service communication
+networks:
+  pto_network:
+    driver: bridge
+
+
