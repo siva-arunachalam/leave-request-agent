@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code into the image
 # Assuming agent code is in agent/src or similar relative to this Dockerfile
-COPY . . # Copy everything from the build context (agent/ directory)
+COPY . . 
 
 # Ensure correct ownership
 RUN chown -R app:app /app
@@ -29,5 +29,6 @@ USER app
 
 # Command to run the agent application
 # Adjust 'main.py' if your entrypoint script is named differently
-CMD ["python", "main.py"]
+# CMD ["python", "main.py"]
+CMD ["/bin/bash"]
 

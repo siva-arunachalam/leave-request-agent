@@ -1,7 +1,5 @@
 # docker-compose.yml
 
-version: '3.8' # Specifies the Docker Compose file version
-
 services:
   # PostgreSQL Database Service
   db:
@@ -32,25 +30,19 @@ services:
   # FastAPI Application Service
   api:
     build:
-      context: . # Build context is project root for API's Dockerfile
-      dockerfile: Dockerfile # Assumes API Dockerfile is in root
-    container_name: pto_api_service # Assign a specific name to the container
-    # The CMD in the Dockerfile runs uvicorn by default.
-    # You can override it here if needed, e.g., to add --reload for development:
-    # command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      context: ./api 
+      dockerfile: Dockerfile 
+    container_name: pto_api_service 
     volumes:
-      # Mount application code from host into container for development hot-reloading.
-      - ./app:/app/app
+      - ./api:/app
     ports:
-      - "8000:8000" # Map host port 8000 to container port 8000 where API runs
+      - "8000:8000" 
     environment:
-      # Pass DB connection details to the API application
       - DB_HOST=db # Use the service name 'db' as the hostname
       - DB_PORT=5432
       - DB_USER=${DB_USER:-pto_user}
-      - DB_PASSWORD=${DB_PASSWORD:-changeme} # Use the same password as the db service
+      - DB_PASSWORD=${DB_PASSWORD:-changeme} 
       - DB_NAME=${DB_NAME:-pto_app_db}
-      # Controls visibility of override parameter in API docs (true/false)
       - ALLOW_EMPLOYEE_OVERRIDE=${ALLOW_EMPLOYEE_OVERRIDE:-false}
     depends_on:
       db: # Ensure DB service is started and healthy before starting API
@@ -65,13 +57,14 @@ services:
       context: ./agent # Build context is the agent sub-directory
       dockerfile: Dockerfile # Use the Dockerfile inside ./agent
     container_name: pto_agent_service # Assign a specific name to the container
+    volumes:
+      - ./agent:/app
     environment:
-      # Pass necessary variables from .env or shell to the agent container
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - SP_TENANT_ID=${SP_TENANT_ID}
+      - SP_CLIENT_ID=${SP_CLIENT_ID}
+      - SP_CLIENT_SECRET=${SP_CLIENT_SECRET}
       - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
       - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
-      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
-      - API_BASE_URL=${API_BASE_URL:-http://api:8000} # URL for the agent to call the API service
     depends_on:
       - api # Agent depends on the API service being available (implies db is also ready)
     restart: unless-stopped # Or 'no' if primarily run interactively via 'run'

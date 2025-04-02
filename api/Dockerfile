@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application and script code into the image
 # Ensure correct ownership for the non-root user
-COPY ./app /app/app
-COPY ./scripts /app/scripts
+COPY . /app
+# COPY ./scripts /app/scripts
 RUN chown -R app:app /app
 
 # Switch to non-root user
@@ -30,5 +30,5 @@ EXPOSE 8000
 
 # Command to run the FastAPI application using Uvicorn
 # This will be the default command when starting the container with 'docker-compose up api'
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["/bin/bash"]

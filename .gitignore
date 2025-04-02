@@ -167,3 +167,6 @@ vscode_extensions/
 
 # data
 data/
+
+# pynb
+*.ipynb

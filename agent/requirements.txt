@@ -17,3 +17,7 @@ python-dotenv
 pydantic
 pydantic-settings
 
+azure-identity
+aiohttp
+rich
+nest_asyncio
